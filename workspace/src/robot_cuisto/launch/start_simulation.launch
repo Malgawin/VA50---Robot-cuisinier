@@ -1,0 +1,60 @@
+<launch>
+
+	<!-- ========================================================= -->
+	<!-- 1. Launch Kinova Gazebo                                  -->
+	<!-- ========================================================= -->
+	<include file="$(find kinova_gazebo)/launch/robot_launch.launch">
+		<arg name="kinova_robotType" value="j2n6s200"/>
+	</include>
+
+
+	<!-- ========================================================= -->
+	<!-- 2. Launch MoveIt                                         -->
+	<!-- ========================================================= -->
+	<include file="$(find j2n6s200_moveit_config)/launch/move_group_j2n6s200.launch">
+		<arg name="allow_trajectory_execution" value="true"/>
+		<arg name="gazebo_sim" value="true"/>
+	</include>
+
+
+	<!-- ========================================================= -->
+	<!-- 3. Send initial pose                                  -->
+	<!-- ========================================================= -->
+	<node
+		pkg="robot_cuisto"
+		type="go_to_initial_config.py"
+		name="go_to_initial_config"
+		output="screen"
+	/>
+
+	<!-- ========================================================= -->
+	<!-- 4. Place the camera                                 -->
+	<!-- ========================================================= -->
+	<node
+		pkg="gazebo_ros"
+		type="spawn_model"
+		name="spawn_rgbd_camera"
+		args="-sdf
+		-file $(find robot_cuisto)/models/rgbd_camera/rgbd_camera.sdf
+		-model rgbd_camera"
+		output="screen"
+	/>
+	<node
+		pkg="tf"
+		type="static_transform_publisher"
+		name="rgbd_camera_tf"
+		args="0.0 -0.25 1.5 3.14159265 0 3.14159265 world rgbd_camera_link 100"
+	/>
+
+
+	<!-- ========================================================= -->
+	<!-- 5. Launch Rviz                                -->
+	<!-- ========================================================= -->
+	<node
+		pkg="rviz"
+		type="rviz"
+		name="rviz"
+		args="-d $(find robot_cuisto)/config/config.rviz"
+		output="screen"
+	/>
+</launch>
