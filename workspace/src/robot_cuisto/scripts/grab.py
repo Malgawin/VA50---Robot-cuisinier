@@ -2,115 +2,88 @@
 
 import rospy
 import actionlib
-from control_msgs.msg import FollowJointTrajectoryAction, FollowJointTrajectoryGoal
-from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
-from std_msgs.msg import Float64
 import sys
 import moveit_commander
+
+from control_msgs.msg import FollowJointTrajectoryAction, FollowJointTrajectoryGoal
+from trajectory_msgs.msg import JointTrajectoryPoint
+from std_msgs.msg import Float64
 from geometry_msgs.msg import Pose
 
 def set_finger_positions(tip_1_position, tip_2_position):
     """
-    Fonction pour ajuster les positions des doigts via les publishers.
+    Function to adjust the positions of the fingers via the publishers.
     """
     tip_1_pub.publish(Float64(tip_1_position))
     tip_2_pub.publish(Float64(tip_2_position))
     rospy.sleep(2.0)  
 
 def open_pliers():
-    # 2) On attend que le contrôleur soit disponible
-    rospy.loginfo("Waiting for finger trajectory controller...")
+    """
+    Function to open the gripper fingers.
+    """
     client.wait_for_server()
-    rospy.loginfo("Finger trajectory controller is ready.")
 
-    # 3) On crée le goal
+    # Create the goal
     goal = FollowJointTrajectoryGoal()
 
-    # 4) On donne les noms des joints à commander
     goal.trajectory.joint_names = [
         "j2n6s200_joint_finger_1",
         "j2n6s200_joint_finger_2"
     ]
 
-    # 5) On crée un point de trajectoire
     point = JointTrajectoryPoint()
-
-    # 6) On donne la position cible des doigts
-    # Attention : ces valeurs dépendent de ton robot et de la URDF.
-    # Il faut les ajuster selon ton gripper.
     point.positions = [0.2, 0.2] # 1.51 = Close ; 0.0 = Open
-
-    # 7) Vitesses nulles pour simplifier
     point.velocities = [0.0, 0.0]
-
-    # 8) Temps d'exécution
     point.time_from_start = rospy.Duration(2.0)
 
-    # 9) On ajoute le point à la trajectoire
     goal.trajectory.points = [point]
 
-    # Ajustement des positions des doigts via les publishers pour les contrôleurs de position
-    set_finger_positions(1.0, 1.0)  # Ajuste les positions des doigts pour fermer le gripper
+    # Open the gripper fingers
+    set_finger_positions(1.0, 1.0)
 
-    # 10) On envoie la trajectoire
+
     client.send_goal_and_wait(goal)
-
-    # 11) On récupère le résultat
     state = client.get_state()
     rospy.loginfo("Final action state: %s", state)
 
 def close_pliers():
-    # 2) On attend que le contrôleur soit disponible
-    rospy.loginfo("Waiting for finger trajectory controller...")
+    """
+    Function to close the gripper fingers.
+    """
     client.wait_for_server()
-    rospy.loginfo("Finger trajectory controller is ready.")
 
-    # 3) On crée le goal
+
+    # Create the goal
     goal = FollowJointTrajectoryGoal()
 
-    # 4) On donne les noms des joints à commander
     goal.trajectory.joint_names = [
         "j2n6s200_joint_finger_1",
         "j2n6s200_joint_finger_2"
     ]
 
-    # 5) On crée un point de trajectoire
     point = JointTrajectoryPoint()
-
-    # 6) On donne la position cible des doigts
-    # Attention : ces valeurs dépendent de ton robot et de la URDF.
-    # Il faut les ajuster selon ton gripper.
     point.positions = [0.6, 0.6] # 1.51 = Close ; 0.0 = Open
-
-    # 7) Vitesses nulles pour simplifier
     point.velocities = [0.0, 0.0]
-
-    # 8) Temps d'exécution
     point.time_from_start = rospy.Duration(2.0)
 
-    # 9) On ajoute le point à la trajectoire
     goal.trajectory.points = [point]
 
-    # Ajustement des positions des doigts via les publishers pour les contrôleurs de position
-    set_finger_positions(1.0, 1.0)  # Ajuste les positions des doigts pour fermer le gripper
+    # Close the gripper fingers
+    set_finger_positions(1.0, 1.0)
 
-    # 10) On envoie la trajectoire
     client.send_goal_and_wait(goal)
-
-    # 11) On récupère le résultat
     state = client.get_state()
     rospy.loginfo("Final action state: %s", state)
 
 
 def go_to(x, y, z):
-    # Groupe MoveIt correspondant au bras
+    """
+    Function to move the robot arm to a specific position (x, y, z) in space.
+    """
     arm = moveit_commander.MoveGroupCommander("arm")
 
-    current = arm.get_current_pose().pose
-
-    print(current)
-
-    # Pose cible du gripper
+    # Create a target pose for the gripper
     target = Pose()
 
     target.position.x = x
@@ -122,7 +95,6 @@ def go_to(x, y, z):
     target.orientation.z = 0.0068792436275408025
     target.orientation.w = 0.005225221713102918
 
-    # Définir la cible cartésienne
     arm.set_pose_target(target)
 
     # Planification
@@ -139,37 +111,42 @@ def go_to(x, y, z):
 
     
 
-moveit_commander.roscpp_initialize(sys.argv)
-rospy.init_node("finger_gripper_control")
 
-# 1) On crée le client d'action dédié au contrôleur des doigts
-client = actionlib.SimpleActionClient(
-"/j2n6s200/effort_finger_trajectory_controller/follow_joint_trajectory",
-FollowJointTrajectoryAction
-)
 
-# Publishers pour les positions des doigts 
-tip_1_pub = rospy.Publisher(
-    "/j2n6s200/finger_tip_1_position_controller/command",
-    Float64,
-    queue_size=1
-)
+if __name__ == "__main__":
+    moveit_commander.roscpp_initialize(sys.argv)
+    rospy.init_node("finger_gripper_control")
 
-tip_2_pub = rospy.Publisher(
-    "/j2n6s200/finger_tip_2_position_controller/command",
-    Float64,
-    queue_size=1
-)
+    # Create an action client for the gripper's joint trajectory controller
+    client = actionlib.SimpleActionClient(
+    "/j2n6s200/effort_finger_trajectory_controller/follow_joint_trajectory",
+    FollowJointTrajectoryAction
+    )
 
-go_to(0.161606, -0.657037, 0.3) 
+    # Publishers for controlling the finger positions
+    tip_1_pub = rospy.Publisher(
+        "/j2n6s200/finger_tip_1_position_controller/command",
+        Float64,
+        queue_size=1
+    )
 
-open_pliers()
+    tip_2_pub = rospy.Publisher(
+        "/j2n6s200/finger_tip_2_position_controller/command",
+        Float64,
+        queue_size=1
+    )
 
-go_to(0.161606, -0.657037, 0.07) 
+    position = [0.161473, -0.684707, 0.14] # x and y are coordinates of the object, z is the height of the object
+    
+    go_to(position[0], position[1], 0.3) 
 
-close_pliers()
+    open_pliers()
 
-go_to(0.161606, -0.657037, 0.3)
+    go_to(position[0], position[1], position[2] / 2) 
 
-moveit_commander.roscpp_shutdown()
+    close_pliers()
+
+    go_to(position[0], position[1], 0.3)
+
+    moveit_commander.roscpp_shutdown()
 
