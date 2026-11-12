@@ -49,6 +49,7 @@ class YoloGazeboNode:
             rospy.logerr(f"Erreur cv_bridge Depth : {e}")
             
     def objet_reperer(self):
+        # lister le nom de tous les objets reperer sur la caméra
         while self.cv_image is None and not rospy.is_shutdown():
             rospy.loginfo_throttle(1.0, "En attente de la première image de la caméra...")
             rospy.sleep(0.1)
@@ -68,6 +69,7 @@ class YoloGazeboNode:
         return objet
 
     def obtenir_coordonnees_objet(self, nom_recherche):
+        # récuperer les coordonnées d'un objet en particulier dans le monde caméra
         while self.cv_image is None and not rospy.is_shutdown():
             rospy.sleep(0.1)
 
@@ -126,6 +128,7 @@ class YoloGazeboNode:
         return None
 
     def run(self):
+        # Afficher en temps réel les objets reperer avec leur niveau de précision ainsi que leurs coordonnées
             rate = rospy.Rate(30) # 30 Hz
             while not rospy.is_shutdown():
                 if self.cv_image is not None:
